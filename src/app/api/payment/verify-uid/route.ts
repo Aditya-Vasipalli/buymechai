@@ -29,32 +29,37 @@ export async function POST(req: NextRequest) {
       .select('*')
       .eq('creator_id', creatorId)
       .gt('expires_at', new Date().toISOString()) // Not expired
-      .is('is_used', null) // Not yet used
+      .neq('is_used', true) // Not marked as used (includes null and false)
       .order('created_at', { ascending: false }); // Most recent first
 
     if (fetchError) {
       console.error('Error fetching pending transactions:', fetchError);
       return NextResponse.json(
-        { error: 'Failed to check pending transactions' },
+        { error: `Database error: ${fetchError.message}` },
         { status: 500 }
       );
     }
 
+    console.log(`Found ${pendingTransactions?.length || 0} pending transactions for creator ${creatorId}`);
+
     if (!pendingTransactions || pendingTransactions.length === 0) {
       return NextResponse.json(
-        { error: 'No pending transactions found for this creator' },
+        { error: 'No pending transactions found for this creator. Make sure you have made a payment first.' },
         { status: 400 }
       );
     }
 
     // Find matching UID in any pending transaction
+    console.log('Looking for UID:', trimmedUID);
+    console.log('Available UIDs:', pendingTransactions.map(t => t.payment_uid));
+    
     const matchingTransaction = pendingTransactions.find(
       transaction => transaction.payment_uid === trimmedUID
     );
 
     if (!matchingTransaction) {
       return NextResponse.json(
-        { error: 'Payment code not found. Make sure you copied the correct code from your transaction details.' },
+        { error: `Payment code not found. Searched ${pendingTransactions.length} transactions. Make sure you copied the correct code from your transaction details.` },
         { status: 400 }
       );
     }

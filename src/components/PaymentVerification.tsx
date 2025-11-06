@@ -43,6 +43,7 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('API Error Response:', response.status, data);
         setMessage({ type: 'error', text: data.error || 'Verification failed' });
         return;
       }
