@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Creator, Link, ChaiTier, TeamMember, FundingGoal, supabase } from '@/lib/supabase';
 import { UPIService } from '@/lib/upi';
 import BuyChaiButton from '@/components/BuyChaiButton';
+import PaymentVerification from '@/components/PaymentVerification';
 import { 
   ExternalLink, 
   MapPin, 
@@ -247,7 +248,16 @@ export default function CreatorPage({ username }: CreatorPageProps) {
             creator={creator}
             chaiTiers={chaiTiers}
             teamMembers={teamMembers}
-            className="mb-8"
+            className="mb-6"
+          />
+
+          {/* Payment Verification */}
+          <PaymentVerification 
+            creatorId={creator.id}
+            onVerificationSuccess={() => {
+              // Refresh the page to update funding goals
+              window.location.reload();
+            }}
           />
         </div>
 

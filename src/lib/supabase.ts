@@ -58,6 +58,20 @@ export interface TeamMember {
   created_at: string;
 }
 
+export interface PendingTransaction {
+  id: string;
+  payment_uid: string;
+  creator_id: string;
+  team_member_id?: string;
+  funding_goal_id?: string;
+  chai_tier_id?: string;
+  supporter_name: string;
+  supporter_message?: string;
+  amount: number;
+  expires_at: string;
+  created_at: string;
+}
+
 export interface Transaction {
   id: string;
   creator_id: string;
@@ -67,9 +81,11 @@ export interface Transaction {
   supporter_name?: string;
   supporter_message?: string;
   amount: number;
+  payment_uid?: string;
   transaction_id?: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'verified' | 'pending' | 'completed' | 'failed';
   payment_method: string;
+  verified_at?: string;
   created_at: string;
   completed_at?: string;
 }

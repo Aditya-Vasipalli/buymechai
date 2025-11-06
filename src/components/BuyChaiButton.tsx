@@ -28,6 +28,7 @@ export default function BuyChaiButton({
   const [paymentData, setPaymentData] = useState<{
     type: 'redirect' | 'qr';
     data: string;
+    paymentUID: string;
   } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -38,17 +39,40 @@ export default function BuyChaiButton({
     
     try {
       const amount = selectedTier 
-        ? UPIService.paiseToRupees(selectedTier.amount)
-        : parseFloat(customAmount);
+        ? selectedTier.amount // Keep in paise for UID generation
+        : UPIService.rupeesToPaise(parseFloat(customAmount));
       
       const recipient = selectedTeamMember || creator;
-      const transactionNote = selectedTier 
-        ? `${selectedTier.name} from ${creator.display_name}`
-        : `Support for ${creator.display_name}`;
+
+      // Generate UID first
+      const uidResponse = await fetch('/api/payment/generate-uid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creatorId: creator.id,
+          amount: amount,
+          supporterName: supporterName || 'Anonymous',
+          supporterMessage: supporterMessage || '',
+          chaiTierId: selectedTier?.id,
+          teamMemberId: selectedTeamMember?.id
+        }),
+      });
+
+      if (!uidResponse.ok) {
+        throw new Error('Failed to generate payment UID');
+      }
+
+      const { paymentUID } = await uidResponse.json();
+      
+      // Create UPI payment with UID in note
+      const transactionNote = `${paymentUID}`;
+      const amountInRupees = UPIService.paiseToRupees(amount);
       
       const paymentParams: UPIPaymentParams = {
         upiId: recipient.upi_id,
-        amount,
+        amount: amountInRupees,
         merchantName: selectedTeamMember ? selectedTeamMember.name : creator.display_name,
         transactionNote,
         transactionRef: `BMC_${Date.now()}`
@@ -60,8 +84,11 @@ export default function BuyChaiButton({
         // On mobile - redirect to UPI app
         window.location.href = result.data;
       } else {
-        // On desktop - show QR code
-        setPaymentData(result);
+        // On desktop - show QR code with UID
+        setPaymentData({
+          ...result,
+          paymentUID
+        });
       }
       
     } catch (error) {
@@ -95,9 +122,9 @@ export default function BuyChaiButton({
   if (paymentData?.type === 'qr') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
+        <div className="bg-white rounded-2xl p-6 max-w-md w-full text-center">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Scan QR Code</h3>
+            <h3 className="text-lg font-semibold">Complete Your Payment</h3>
             <button
               onClick={() => setPaymentData(null)}
               className="text-gray-500 hover:text-gray-700"
@@ -116,11 +143,31 @@ export default function BuyChaiButton({
             />
           </div>
           
-          <p className="text-sm text-gray-600 mb-2">
-            Scan with any UPI app to pay {getSelectedAmount()}
-          </p>
+          <div className="space-y-4 text-left">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2">📱 Step 1: Pay via UPI</h4>
+              <p className="text-sm text-blue-700">
+                Scan the QR code with any UPI app to pay {getSelectedAmount()}
+              </p>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-semibold text-orange-800 mb-2">📋 Step 2: Complete Payment</h4>
+              <p className="text-sm text-orange-700">
+                After successful payment, you'll receive a unique verification code in your UPI transaction note.
+              </p>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-semibold text-green-800 mb-2">✅ Step 3: Verify Below</h4>
+              <p className="text-sm text-green-700">
+                Copy the verification code from your transaction and paste it in the verification field below to confirm your donation.
+              </p>
+            </div>
+          </div>
           
-          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-700">
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-700 mt-4 pt-4 border-t">
+            <span className="text-gray-600">Supported UPI Apps:</span>
             {UPIService.getUPIApps().map(app => (
               <span key={app.name} className="bg-gray-100 px-2 py-1 rounded text-gray-800">
                 {app.name}
