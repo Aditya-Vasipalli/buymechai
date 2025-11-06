@@ -288,18 +288,18 @@ export default function AnalyticsDashboard({ creator }: AnalyticsDashboardProps)
               {analytics.topLinks.map((link, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate">{link.title}</h4>
-                    <p className="text-sm text-gray-500 truncate">{link.url}</p>
+                    <h4 className="font-medium truncate text-gray-900">{link.title}</h4>
+                    <p className="text-sm text-gray-700 truncate">{link.url}</p>
                   </div>
                   <div className="text-right ml-4">
-                    <p className="font-semibold">{link.clicks.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">clicks</p>
+                    <p className="font-semibold text-gray-900">{link.clicks.toLocaleString()}</p>
+                    <p className="text-xs text-gray-700">clicks</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No link clicks yet</p>
+            <p className="text-gray-700 text-center py-4">No link clicks yet</p>
           )}
         </div>
 
@@ -318,7 +318,7 @@ export default function AnalyticsDashboard({ creator }: AnalyticsDashboardProps)
                       <span className="font-medium">
                         {donation.supporter_name || 'Anonymous'}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-700">
                         {new Date(donation.created_at).toLocaleDateString()}
                       </span>
                     </div>
@@ -337,7 +337,7 @@ export default function AnalyticsDashboard({ creator }: AnalyticsDashboardProps)
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No donations yet</p>
+            <p className="text-gray-700 text-center py-4">No donations yet</p>
           )}
         </div>
       </div>

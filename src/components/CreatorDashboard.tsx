@@ -1,46 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Creator, ChaiTier, TeamMember, Link as LinkType, supabase } from '@/lib/supabase';
-import AnalyticsDashboard from './AnalyticsDashboard';
-import FundingGoalManager from './FundingGoalManager';
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Creator, ChaiTier, TeamMember, FundingGoal, Link as SocialLink } from '@/lib/supabase';
 import { 
-  User, 
   Coffee, 
   Users, 
-  ExternalLink, 
-  Settings, 
-  TrendingUp,
-  Target,
-  Plus,
+  Target, 
+  TrendingUp, 
+  Plus, 
+  Edit3, 
+  Eye, 
+  Link as LinkIcon, 
+  Heart,
+  IndianRupee,
+  Calendar,
+  BarChart3,
+  Settings,
+  Bell,
+  User,
+  ExternalLink,
   Edit2,
-  Trash2,
   Save,
   X
 } from 'lucide-react';
 
-// Mock creator data for demo
-const mockCreator: Creator = {
-  id: '550e8400-e29b-41d4-a716-446655440000',
-  username: 'johndoe',
-  display_name: 'John Doe',
-  bio: 'Tech content creator sharing coding tutorials and reviews',
-  profile_picture_url: '',
-  banner_url: '',
-  upi_id: 'johndoe@paytm',
-  theme_color: '#FF6B6B',
-  custom_domain: '',
-  is_active: true,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
+// Mock creator data removed - now using real auth context
 
 export default function CreatorDashboard() {
+  const { creator } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'chai' | 'team' | 'links' | 'goals' | 'analytics'>('overview');
-  const [creator, setCreator] = useState<Creator>(mockCreator);
   const [chaiTiers, setChaiTiers] = useState<ChaiTier[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [links, setLinks] = useState<LinkType[]>([]);
+  const [links, setLinks] = useState<SocialLink[]>([]);
+
+  if (!creator) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading creator data...</p>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -57,7 +58,7 @@ export default function CreatorDashboard() {
       case 'overview':
         return <OverviewTab creator={creator} />;
       case 'profile':
-        return <ProfileTab creator={creator} onUpdate={setCreator} />;
+        return <ProfileTab creator={creator} onUpdate={() => {}} />;
       case 'chai':
         return <ChaiTiersTab creator={creator} chaiTiers={chaiTiers} onUpdate={() => {}} />;
       case 'team':
@@ -65,9 +66,9 @@ export default function CreatorDashboard() {
       case 'links':
         return <LinksTab creator={creator} links={links} onUpdate={() => {}} />;
       case 'goals':
-        return <FundingGoalManager creator={creator} isOwner={true} />;
+        return <GoalsTab creator={creator} />;
       case 'analytics':
-        return <AnalyticsDashboard creator={creator} />;
+        return <AnalyticsTab creator={creator} />;
       default:
         return <OverviewTab creator={creator} />;
     }
@@ -176,7 +177,7 @@ function OverviewTab({ creator }: { creator: Creator }) {
   );
 }
 
-function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: (creator: Creator) => void }) {
+function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     display_name: creator.display_name,
@@ -187,8 +188,9 @@ function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: (creato
 
   const handleSave = async () => {
     // In a real app, this would update the database
-    const updatedCreator = { ...creator, ...formData };
-    onUpdate(updatedCreator);
+    // const updatedCreator = { ...creator, ...formData };
+    // TODO: Implement actual profile update
+    onUpdate();
     setIsEditing(false);
   };
 
@@ -348,7 +350,7 @@ function ChaiTiersTab({ creator, chaiTiers, onUpdate }: { creator: Creator; chai
       <div className="text-center py-12">
         <Coffee className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-600 mb-2">No chai tiers yet</h3>
-        <p className="text-gray-500 mb-4">Create different pricing tiers for your supporters</p>
+        <p className="text-gray-700 mb-4">Create different pricing tiers for your supporters</p>
         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
           Create Your First Tier
         </button>
@@ -371,7 +373,7 @@ function TeamTab({ creator, teamMembers, onUpdate }: { creator: Creator; teamMem
       <div className="text-center py-12">
         <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-600 mb-2">No team members yet</h3>
-        <p className="text-gray-500 mb-4">Add your team members to receive direct support</p>
+        <p className="text-gray-700 mb-4">Add your team members to receive direct support</p>
         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
           Add Your First Member
         </button>
@@ -380,7 +382,7 @@ function TeamTab({ creator, teamMembers, onUpdate }: { creator: Creator; teamMem
   );
 }
 
-function LinksTab({ creator, links, onUpdate }: { creator: Creator; links: LinkType[]; onUpdate: () => void }) {
+function LinksTab({ creator, links, onUpdate }: { creator: Creator; links: SocialLink[]; onUpdate: () => void }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -394,10 +396,67 @@ function LinksTab({ creator, links, onUpdate }: { creator: Creator; links: LinkT
       <div className="text-center py-12">
         <ExternalLink className="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-600 mb-2">No links yet</h3>
-        <p className="text-gray-500 mb-4">Add links to your social media, website, and content</p>
+        <p className="text-gray-700 mb-4">Add links to your social media, website, and content</p>
         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
           Add Your First Link
         </button>
+      </div>
+    </div>
+  );
+}
+
+function GoalsTab({ creator }: { creator: Creator }) {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Funding Goals</h2>
+        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Goal
+        </button>
+      </div>
+      
+      <div className="text-center py-12">
+        <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-600 mb-2">No goals yet</h3>
+        <p className="text-gray-700 mb-4">Set funding goals to motivate your supporters</p>
+        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
+          Create Your First Goal
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsTab({ creator }: { creator: Creator }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Analytics</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Page Views</h3>
+          <p className="text-2xl font-bold text-gray-900">0</p>
+          <p className="text-sm text-gray-500">Last 30 days</p>
+        </div>
+        
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Chais</h3>
+          <p className="text-2xl font-bold text-gray-900">0</p>
+          <p className="text-sm text-gray-500">All time</p>
+        </div>
+        
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Revenue</h3>
+          <p className="text-2xl font-bold text-gray-900">₹0</p>
+          <p className="text-sm text-gray-500">All time</p>
+        </div>
+      </div>
+      
+      <div className="text-center py-12">
+        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-600 mb-2">No analytics data yet</h3>
+        <p className="text-gray-700">Start sharing your page to see analytics</p>
       </div>
     </div>
   );

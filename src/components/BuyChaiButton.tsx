@@ -120,9 +120,9 @@ export default function BuyChaiButton({
             Scan with any UPI app to pay {getSelectedAmount()}
           </p>
           
-          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-700">
             {UPIService.getUPIApps().map(app => (
-              <span key={app.name} className="bg-gray-100 px-2 py-1 rounded">
+              <span key={app.name} className="bg-gray-100 px-2 py-1 rounded text-gray-800">
                 {app.name}
               </span>
             ))}
@@ -205,7 +205,7 @@ export default function BuyChaiButton({
             <div className="mb-6">
               <h3 className="font-medium mb-3">Or enter custom amount</h3>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700">₹</span>
                 <input
                   type="number"
                   placeholder="Enter amount"

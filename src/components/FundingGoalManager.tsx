@@ -71,7 +71,7 @@ export function FundingGoalCard({ goal, creator, isOwner = false, onUpdate }: Fu
         )}
 
         {/* Stats */}
-        <div className="flex items-center justify-between text-sm text-gray-500 pt-2 border-t">
+        <div className="flex items-center justify-between text-sm text-gray-700 pt-2 border-t">
           <span>Goal created {new Date(goal.created_at).toLocaleDateString()}</span>
           {progress >= 100 && (
             <span className="text-green-600 font-medium">✓ Completed!</span>
@@ -144,7 +144,7 @@ export default function FundingGoalManager({ creator, isOwner = false }: Funding
         <div className="text-center py-12">
           <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-600 mb-2">No funding goals yet</h3>
-          <p className="text-gray-500">
+          <p className="text-gray-700">
             {isOwner 
               ? 'Create your first funding goal to start raising money for your projects.'
               : 'This creator hasn\'t set up any funding goals yet.'

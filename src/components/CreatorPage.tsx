@@ -281,7 +281,7 @@ export default function CreatorPage({ username }: CreatorPageProps) {
                       }}
                     />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-700 mt-1">
                     {progress.toFixed(1)}% complete
                   </div>
                 </div>
@@ -345,7 +345,7 @@ export default function CreatorPage({ username }: CreatorPageProps) {
                         <p className="text-sm text-gray-600">{link.description}</p>
                       )}
                     </div>
-                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                    <ExternalLink className="w-4 h-4 text-gray-600" />
                   </div>
                 </button>
               ))}
@@ -354,7 +354,7 @@ export default function CreatorPage({ username }: CreatorPageProps) {
         )}
 
         {/* Footer */}
-        <div className="px-6 py-8 text-center text-gray-500">
+        <div className="px-6 py-8 text-center text-gray-700">
           <p className="text-sm">
             Powered by <span className="font-medium">BuyMeChai</span>
           </p>
