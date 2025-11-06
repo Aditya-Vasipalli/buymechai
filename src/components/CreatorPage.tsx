@@ -5,6 +5,7 @@ import { Creator, Link, ChaiTier, TeamMember, FundingGoal, supabase } from '@/li
 import { UPIService } from '@/lib/upi';
 import BuyChaiButton from '@/components/BuyChaiButton';
 import PaymentVerification from '@/components/PaymentVerification';
+import PaymentHelpGuide from '@/components/PaymentHelpGuide';
 import { 
   ExternalLink, 
   MapPin, 
@@ -259,6 +260,9 @@ export default function CreatorPage({ username }: CreatorPageProps) {
               window.location.reload();
             }}
           />
+
+          {/* Payment Help Guide */}
+          <PaymentHelpGuide />
         </div>
 
         {/* Funding Goals */}

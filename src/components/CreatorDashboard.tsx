@@ -1,31 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Creator, ChaiTier, TeamMember, FundingGoal, Link as SocialLink } from '@/lib/supabase';
+import { Creator, ChaiTier, TeamMember, FundingGoal, Link as SocialLink, supabase } from '@/lib/supabase';
+import { UPIService } from '@/lib/upi';
+import { TeamTab, LinksTab, GoalsTab, AnalyticsTab } from '@/components/DashboardTabs';
 import { 
   Coffee, 
   Users, 
   Target, 
   TrendingUp, 
   Plus, 
-  Edit3, 
-  Eye, 
-  Link as LinkIcon, 
-  Heart,
-  IndianRupee,
-  Calendar,
-  BarChart3,
-  Settings,
-  Bell,
+  Edit2, 
+  Save, 
+  X,
   User,
-  ExternalLink,
-  Edit2,
-  Save,
-  X
+  ExternalLink
 } from 'lucide-react';
-
-// Mock creator data removed - now using real auth context
 
 export default function CreatorDashboard() {
   const { creator } = useAuth();
@@ -33,12 +24,83 @@ export default function CreatorDashboard() {
   const [chaiTiers, setChaiTiers] = useState<ChaiTier[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [links, setLinks] = useState<SocialLink[]>([]);
+  const [fundingGoals, setFundingGoals] = useState<FundingGoal[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!creator) {
+  // Load all data when component mounts or creator changes
+  useEffect(() => {
+    if (creator) {
+      loadAllData();
+    }
+  }, [creator]);
+
+  const loadAllData = async () => {
+    if (!creator) return;
+    
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadChaiTiers(),
+        loadTeamMembers(), 
+        loadLinks(),
+        loadFundingGoals()
+      ]);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadChaiTiers = async () => {
+    const { data } = await supabase
+      .from('chai_tiers')
+      .select('*')
+      .eq('creator_id', creator!.id)
+      .eq('is_active', true)
+      .order('sort_order');
+    
+    if (data) setChaiTiers(data);
+  };
+
+  const loadTeamMembers = async () => {
+    const { data } = await supabase
+      .from('team_members')
+      .select('*')
+      .eq('creator_id', creator!.id)
+      .eq('is_active', true)
+      .order('sort_order');
+    
+    if (data) setTeamMembers(data);
+  };
+
+  const loadLinks = async () => {
+    const { data } = await supabase
+      .from('links')
+      .select('*')
+      .eq('creator_id', creator!.id)
+      .eq('is_active', true)
+      .order('sort_order');
+    
+    if (data) setLinks(data);
+  };
+
+  const loadFundingGoals = async () => {
+    const { data } = await supabase
+      .from('funding_goals')
+      .select('*')
+      .eq('creator_id', creator!.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    
+    if (data) setFundingGoals(data);
+  };
+
+  if (!creator || loading) {
     return (
       <div className="text-center py-12">
         <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading creator data...</p>
+        <p className="text-gray-600">Loading dashboard...</p>
       </div>
     );
   }
@@ -56,21 +118,21 @@ export default function CreatorDashboard() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab creator={creator} />;
+        return <OverviewTab creator={creator} chaiTiers={chaiTiers} teamMembers={teamMembers} links={links} fundingGoals={fundingGoals} onTabChange={setActiveTab} />;
       case 'profile':
-        return <ProfileTab creator={creator} onUpdate={() => {}} />;
+        return <ProfileTab creator={creator} onUpdate={loadAllData} />;
       case 'chai':
-        return <ChaiTiersTab creator={creator} chaiTiers={chaiTiers} onUpdate={() => {}} />;
+        return <ChaiTiersTab creator={creator} chaiTiers={chaiTiers} onUpdate={loadChaiTiers} />;
       case 'team':
-        return <TeamTab creator={creator} teamMembers={teamMembers} onUpdate={() => {}} />;
+        return <TeamTab creator={creator} teamMembers={teamMembers} onUpdate={loadTeamMembers} />;
       case 'links':
-        return <LinksTab creator={creator} links={links} onUpdate={() => {}} />;
+        return <LinksTab creator={creator} links={links} onUpdate={loadLinks} />;
       case 'goals':
-        return <GoalsTab creator={creator} />;
+        return <GoalsTab creator={creator} fundingGoals={fundingGoals} onUpdate={loadFundingGoals} />;
       case 'analytics':
         return <AnalyticsTab creator={creator} />;
       default:
-        return <OverviewTab creator={creator} />;
+        return <OverviewTab creator={creator} chaiTiers={chaiTiers} teamMembers={teamMembers} links={links} fundingGoals={fundingGoals} onTabChange={setActiveTab} />;
     }
   };
 
@@ -107,7 +169,22 @@ export default function CreatorDashboard() {
   );
 }
 
-function OverviewTab({ creator }: { creator: Creator }) {
+// Overview Tab
+function OverviewTab({ 
+  creator, 
+  chaiTiers, 
+  teamMembers, 
+  links, 
+  fundingGoals,
+  onTabChange
+}: { 
+  creator: Creator;
+  chaiTiers: ChaiTier[];
+  teamMembers: TeamMember[];
+  links: SocialLink[];
+  fundingGoals: FundingGoal[];
+  onTabChange: (tab: 'overview' | 'profile' | 'chai' | 'team' | 'links' | 'goals' | 'analytics') => void;
+}) {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard Overview</h1>
@@ -126,47 +203,60 @@ function OverviewTab({ creator }: { creator: Creator }) {
         </div>
         
         <div className="bg-blue-50 p-6 rounded-lg">
-          <h3 className="font-semibold text-blue-800 mb-2">Quick Stats</h3>
-          <div className="space-y-2 text-blue-600">
-            <p>0 Total Views</p>
-            <p>0 Total Donations</p>
-            <p>₹0 Total Earned</p>
+          <h3 className="font-semibold text-blue-800 mb-2">Setup Progress</h3>
+          <div className="space-y-2 text-blue-600 text-sm">
+            <p>✅ Profile created</p>
+            <p>{chaiTiers.length > 0 ? '✅' : '⏳'} Chai tiers: {chaiTiers.length}</p>
+            <p>{links.length > 0 ? '✅' : '⏳'} Links: {links.length}</p>
+            <p>{fundingGoals.length > 0 ? '✅' : '⏳'} Goals: {fundingGoals.length}</p>
           </div>
         </div>
         
         <div className="bg-green-50 p-6 rounded-lg">
-          <h3 className="font-semibold text-green-800 mb-2">Getting Started</h3>
-          <ul className="text-green-600 text-sm space-y-1">
-            <li>✓ Create your profile</li>
-            <li>• Set up chai tiers</li>
-            <li>• Add your links</li>
-            <li>• Share your page</li>
-          </ul>
+          <h3 className="font-semibold text-green-800 mb-2">Quick Stats</h3>
+          <div className="space-y-1 text-green-600 text-sm">
+            <p>{chaiTiers.length} Chai Tiers</p>
+            <p>{teamMembers.length} Team Members</p>
+            <p>{links.length} Links</p>
+            <p>{fundingGoals.length} Active Goals</p>
+          </div>
         </div>
       </div>
       
       <div>
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+          <button 
+            onClick={() => onTabChange('chai')}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+          >
             <Coffee className="w-6 h-6 text-orange-500 mb-2" />
             <h3 className="font-medium">Add Chai Tier</h3>
             <p className="text-sm text-gray-600">Create pricing options</p>
           </button>
           
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+          <button 
+            onClick={() => onTabChange('team')}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+          >
             <Users className="w-6 h-6 text-blue-500 mb-2" />
             <h3 className="font-medium">Add Team Member</h3>
             <p className="text-sm text-gray-600">Support your team</p>
           </button>
           
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+          <button 
+            onClick={() => onTabChange('links')}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+          >
             <ExternalLink className="w-6 h-6 text-green-500 mb-2" />
             <h3 className="font-medium">Add Link</h3>
             <p className="text-sm text-gray-600">Share your content</p>
           </button>
           
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+          <button 
+            onClick={() => onTabChange('goals')}
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+          >
             <Target className="w-6 h-6 text-purple-500 mb-2" />
             <h3 className="font-medium">Create Goal</h3>
             <p className="text-sm text-gray-600">Set funding target</p>
@@ -177,8 +267,10 @@ function OverviewTab({ creator }: { creator: Creator }) {
   );
 }
 
+// Profile Tab
 function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     display_name: creator.display_name,
     bio: creator.bio || '',
@@ -187,11 +279,23 @@ function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => v
   });
 
   const handleSave = async () => {
-    // In a real app, this would update the database
-    // const updatedCreator = { ...creator, ...formData };
-    // TODO: Implement actual profile update
-    onUpdate();
-    setIsEditing(false);
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('creators')
+        .update(formData)
+        .eq('id', creator.id);
+
+      if (error) throw error;
+      
+      onUpdate();
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -208,10 +312,11 @@ function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => v
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2"
+              disabled={isSaving}
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              Save
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         ) : (
@@ -274,61 +379,38 @@ function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => v
           <div>
             <label className="block text-sm font-medium mb-2">Theme Color</label>
             {isEditing ? (
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={formData.theme_color}
-                  onChange={(e) => setFormData({ ...formData, theme_color: e.target.value })}
-                  className="w-12 h-12 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="text"
-                  value={formData.theme_color}
-                  onChange={(e) => setFormData({ ...formData, theme_color: e.target.value })}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
-                />
-              </div>
+              <input
+                type="color"
+                value={formData.theme_color}
+                onChange={(e) => setFormData({ ...formData, theme_color: e.target.value })}
+                className="w-20 h-10 border border-gray-300 rounded-lg"
+              />
             ) : (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
                 <div 
-                  className="w-6 h-6 rounded-full border"
+                  className="w-8 h-8 rounded-lg border border-gray-300"
                   style={{ backgroundColor: creator.theme_color }}
                 />
-                <span>{creator.theme_color}</span>
+                <span className="text-gray-600">{creator.theme_color}</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Page URL</label>
-            <p className="p-3 bg-gray-50 rounded-lg text-gray-600">
-              buymechai.dev/{creator.username}
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Profile Picture</label>
-            <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
-              <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
-                <User className="w-8 h-8 text-gray-400" />
-              </div>
-              <p className="text-gray-600 mb-2">Upload profile picture</p>
-              <button className="text-orange-500 hover:text-orange-600">
-                Choose File
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Banner Image</label>
-            <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
-              <p className="text-gray-600 mb-2">Upload banner image</p>
-              <button className="text-orange-500 hover:text-orange-600">
-                Choose File
-              </button>
-            </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="font-medium mb-2">Preview</h3>
+          <div className="border border-gray-200 rounded-lg p-4 bg-white">
+            <h4 className="font-semibold text-lg">{formData.display_name}</h4>
+            <p className="text-gray-600 text-sm mt-1">@{creator.username}</p>
+            {formData.bio && (
+              <p className="text-gray-700 mt-2 text-sm">{formData.bio}</p>
+            )}
+            <button 
+              className="mt-3 px-4 py-2 rounded-lg text-white text-sm"
+              style={{ backgroundColor: formData.theme_color }}
+            >
+              Buy me a chai
+            </button>
           </div>
         </div>
       </div>
@@ -336,128 +418,210 @@ function ProfileTab({ creator, onUpdate }: { creator: Creator; onUpdate: () => v
   );
 }
 
+// Chai Tiers Tab with full CRUD
 function ChaiTiersTab({ creator, chaiTiers, onUpdate }: { creator: Creator; chaiTiers: ChaiTier[]; onUpdate: () => void }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTier, setEditingTier] = useState<ChaiTier | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    amount: '',
+    emoji: '☕'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const tierData = {
+      creator_id: creator.id,
+      name: formData.name,
+      description: formData.description,
+      amount: UPIService.rupeesToPaise(parseFloat(formData.amount)),
+      emoji: formData.emoji,
+      sort_order: chaiTiers.length
+    };
+
+    try {
+      if (editingTier) {
+        const { error } = await supabase
+          .from('chai_tiers')
+          .update(tierData)
+          .eq('id', editingTier.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('chai_tiers')
+          .insert(tierData);
+        
+        if (error) throw error;
+      }
+
+      setFormData({ name: '', description: '', amount: '', emoji: '☕' });
+      setShowAddForm(false);
+      setEditingTier(null);
+      onUpdate();
+    } catch (error) {
+      console.error('Error saving tier:', error);
+      alert('Failed to save tier');
+    }
+  };
+
+  const handleEdit = (tier: ChaiTier) => {
+    setEditingTier(tier);
+    setFormData({
+      name: tier.name,
+      description: tier.description || '',
+      amount: UPIService.paiseToRupees(tier.amount).toString(),
+      emoji: tier.emoji
+    });
+    setShowAddForm(true);
+  };
+
+  const handleDelete = async (tier: ChaiTier) => {
+    if (!confirm('Are you sure you want to delete this tier?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('chai_tiers')
+        .update({ is_active: false })
+        .eq('id', tier.id);
+      
+      if (error) throw error;
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting tier:', error);
+      alert('Failed to delete tier');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Chai Tiers</h2>
-        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2">
+        <button 
+          onClick={() => setShowAddForm(true)}
+          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2"
+        >
           <Plus className="w-4 h-4" />
           Add Tier
         </button>
       </div>
-      
-      <div className="text-center py-12">
-        <Coffee className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">No chai tiers yet</h3>
-        <p className="text-gray-700 mb-4">Create different pricing tiers for your supporters</p>
-        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
-          Create Your First Tier
-        </button>
-      </div>
-    </div>
-  );
-}
 
-function TeamTab({ creator, teamMembers, onUpdate }: { creator: Creator; teamMembers: TeamMember[]; onUpdate: () => void }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Team Members</h2>
-        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Member
-        </button>
-      </div>
-      
-      <div className="text-center py-12">
-        <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">No team members yet</h3>
-        <p className="text-gray-700 mb-4">Add your team members to receive direct support</p>
-        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
-          Add Your First Member
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function LinksTab({ creator, links, onUpdate }: { creator: Creator; links: SocialLink[]; onUpdate: () => void }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Links</h2>
-        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Link
-        </button>
-      </div>
-      
-      <div className="text-center py-12">
-        <ExternalLink className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">No links yet</h3>
-        <p className="text-gray-700 mb-4">Add links to your social media, website, and content</p>
-        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
-          Add Your First Link
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function GoalsTab({ creator }: { creator: Creator }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Funding Goals</h2>
-        <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Goal
-        </button>
-      </div>
-      
-      <div className="text-center py-12">
-        <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">No goals yet</h3>
-        <p className="text-gray-700 mb-4">Set funding goals to motivate your supporters</p>
-        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
-          Create Your First Goal
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsTab({ creator }: { creator: Creator }) {
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Analytics</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Page Views</h3>
-          <p className="text-2xl font-bold text-gray-900">0</p>
-          <p className="text-sm text-gray-500">Last 30 days</p>
+      {chaiTiers.length > 0 ? (
+        <div className="grid gap-4">
+          {chaiTiers.map(tier => (
+            <div key={tier.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">{tier.emoji} {tier.name}</h3>
+                <p className="text-sm text-gray-600">{tier.description}</p>
+                <p className="font-semibold text-orange-600">{UPIService.formatCurrency(tier.amount)}</p>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleEdit(tier)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => handleDelete(tier)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-        
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Chais</h3>
-          <p className="text-2xl font-bold text-gray-900">0</p>
-          <p className="text-sm text-gray-500">All time</p>
+      ) : (
+        <div className="text-center py-12">
+          <Coffee className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No chai tiers yet</h3>
+          <p className="text-gray-500 mb-4">Create different pricing tiers for your supporters</p>
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+          >
+            Create Your First Tier
+          </button>
         </div>
-        
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Revenue</h3>
-          <p className="text-2xl font-bold text-gray-900">₹0</p>
-          <p className="text-sm text-gray-500">All time</p>
+      )}
+
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingTier ? 'Edit Tier' : 'Add New Tier'}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="e.g., Regular Chai"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="Optional description"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Price (₹)</label>
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="e.g., 50"
+                  min="1"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Emoji</label>
+                <input
+                  type="text"
+                  value={formData.emoji}
+                  onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                  className="w-full p-2 border rounded-lg"
+                  placeholder="☕"
+                  maxLength={2}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600"
+                >
+                  {editingTier ? 'Update' : 'Create'} Tier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingTier(null);
+                    setFormData({ name: '', description: '', amount: '', emoji: '☕' });
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
-      
-      <div className="text-center py-12">
-        <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-600 mb-2">No analytics data yet</h3>
-        <p className="text-gray-700">Start sharing your page to see analytics</p>
-      </div>
+      )}
     </div>
   );
 }

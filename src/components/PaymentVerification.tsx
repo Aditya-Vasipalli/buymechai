@@ -90,6 +90,16 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
       </div>
 
       <div className="space-y-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <h4 className="font-medium text-yellow-800 mb-1">🔍 Where to find your payment code:</h4>
+          <ul className="text-xs text-yellow-700 space-y-1">
+            <li>• Open your UPI app (GPay, PhonePe, Paytm, etc.)</li>
+            <li>• Go to transaction history and find your recent payment</li>
+            <li>• Look for "Transaction Note" or "Reference" (NOT payment notes)</li>
+            <li>• Copy the long code starting with "BMC_"</li>
+          </ul>
+        </div>
+        
         <div className="relative">
           <textarea
             value={paymentUID}
@@ -143,8 +153,8 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
 
       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-700">
-          <strong>How it works:</strong> When someone makes a donation, they get a unique payment code in their UPI transaction note. 
-          They need to paste that code here to verify the payment and update your funding progress.
+          <strong>How it works:</strong> Each UPI payment includes a unique verification code in the transaction reference/note field (visible in your UPI app's transaction history). 
+          This code confirms the payment was made and updates the creator's funding progress. The code is different from any notes you typed during payment.
         </p>
       </div>
     </div>

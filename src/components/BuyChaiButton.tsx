@@ -122,68 +122,78 @@ export default function BuyChaiButton({
   if (paymentData?.type === 'qr') {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-md w-full text-center">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Complete Your Payment</h3>
+        <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white p-6 pb-4 border-b border-gray-100">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Complete Your Payment</h3>
+              <button
+                onClick={() => setPaymentData(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6 text-center">
+            <div className="mb-6">
+              <Image
+                src={paymentData.data}
+                alt="UPI QR Code"
+                width={180}
+                height={180}
+                className="mx-auto rounded-lg"
+              />
+            </div>
+            
+            <div className="space-y-4 text-left">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-2">📱 Step 1: Scan & Pay</h4>
+                <p className="text-sm text-blue-700 mb-2">
+                  Scan the QR code above with any UPI app to pay {getSelectedAmount()}
+                </p>
+                <div className="text-xs bg-blue-100 p-2 rounded font-mono">
+                  Transaction Note: {paymentData.paymentUID}
+                </div>
+              </div>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <h4 className="font-semibold text-orange-800 mb-2">📋 Step 2: Copy Payment Code</h4>
+                <p className="text-sm text-orange-700 mb-2">
+                  After payment, copy the long code from your UPI transaction details (not from notes field)
+                </p>
+                <p className="text-xs text-orange-600">
+                  ⚠️ Look for transaction note/reference, not the payment notes you entered
+                </p>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-semibold text-green-800 mb-2">✅ Step 3: Verify Below</h4>
+                <p className="text-sm text-green-700">
+                  Paste the payment code in the verification field below to confirm your donation
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-700 mt-6 pt-4 border-t">
+              <span className="text-gray-600">Supported UPI Apps:</span>
+              {UPIService.getUPIApps().map(app => (
+                <span key={app.name} className="bg-gray-100 px-2 py-1 rounded text-gray-800">
+                  {app.name}
+                </span>
+              ))}
+            </div>
+            
             <button
-              onClick={() => setPaymentData(null)}
-              className="text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                setPaymentData(null);
+                setIsOpen(false);
+              }}
+              className="mt-4 w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
             >
-              <X className="w-5 h-5" />
+              Close
             </button>
           </div>
-          
-          <div className="mb-4">
-            <Image
-              src={paymentData.data}
-              alt="UPI QR Code"
-              width={200}
-              height={200}
-              className="mx-auto rounded-lg"
-            />
-          </div>
-          
-          <div className="space-y-4 text-left">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">📱 Step 1: Pay via UPI</h4>
-              <p className="text-sm text-blue-700">
-                Scan the QR code with any UPI app to pay {getSelectedAmount()}
-              </p>
-            </div>
-
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <h4 className="font-semibold text-orange-800 mb-2">📋 Step 2: Complete Payment</h4>
-              <p className="text-sm text-orange-700">
-                After successful payment, you'll receive a unique verification code in your UPI transaction note.
-              </p>
-            </div>
-
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-green-800 mb-2">✅ Step 3: Verify Below</h4>
-              <p className="text-sm text-green-700">
-                Copy the verification code from your transaction and paste it in the verification field below to confirm your donation.
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-700 mt-4 pt-4 border-t">
-            <span className="text-gray-600">Supported UPI Apps:</span>
-            {UPIService.getUPIApps().map(app => (
-              <span key={app.name} className="bg-gray-100 px-2 py-1 rounded text-gray-800">
-                {app.name}
-              </span>
-            ))}
-          </div>
-          
-          <button
-            onClick={() => {
-              setPaymentData(null);
-              setIsOpen(false);
-            }}
-            className="mt-4 w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     );

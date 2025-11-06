@@ -20,33 +20,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if UID exists and belongs to the creator
-    const { data: pendingTransaction, error: fetchError } = await supabase
+    // Trim whitespace from pasted UID
+    const trimmedUID = paymentUID.trim();
+
+    // Get all pending transactions for this creator (not expired and not used)
+    const { data: pendingTransactions, error: fetchError } = await supabase
       .from('pending_transactions')
       .select('*')
-      .eq('payment_uid', paymentUID)
       .eq('creator_id', creatorId)
       .gt('expires_at', new Date().toISOString()) // Not expired
-      .single();
+      .is('is_used', null) // Not yet used
+      .order('created_at', { ascending: false }); // Most recent first
 
-    if (fetchError || !pendingTransaction) {
+    if (fetchError) {
+      console.error('Error fetching pending transactions:', fetchError);
       return NextResponse.json(
-        { error: 'Invalid or expired payment UID' },
+        { error: 'Failed to check pending transactions' },
+        { status: 500 }
+      );
+    }
+
+    if (!pendingTransactions || pendingTransactions.length === 0) {
+      return NextResponse.json(
+        { error: 'No pending transactions found for this creator' },
         { status: 400 }
       );
     }
 
-    // Check if this UID has already been verified
-    const { data: existingTransaction } = await supabase
-      .from('transactions')
-      .select('id')
-      .eq('payment_uid', paymentUID)
-      .single();
+    // Find matching UID in any pending transaction
+    const matchingTransaction = pendingTransactions.find(
+      transaction => transaction.payment_uid === trimmedUID
+    );
 
-    if (existingTransaction) {
+    if (!matchingTransaction) {
       return NextResponse.json(
-        { error: 'This payment UID has already been verified' },
+        { error: 'Payment code not found. Make sure you copied the correct code from your transaction details.' },
         { status: 400 }
+      );
+    }
+
+    // Mark this transaction as used (instead of deleting)
+    const { error: markUsedError } = await supabase
+      .from('pending_transactions')
+      .update({ 
+        is_used: true,
+        used_at: new Date().toISOString()
+      })
+      .eq('id', matchingTransaction.id);
+
+    if (markUsedError) {
+      console.error('Error marking transaction as used:', markUsedError);
+      return NextResponse.json(
+        { error: 'Failed to update transaction status' },
+        { status: 500 }
       );
     }
 
@@ -54,14 +80,14 @@ export async function POST(req: NextRequest) {
     const { data: newTransaction, error: insertError } = await supabase
       .from('transactions')
       .insert({
-        creator_id: pendingTransaction.creator_id,
-        team_member_id: pendingTransaction.team_member_id,
-        funding_goal_id: pendingTransaction.funding_goal_id,
-        chai_tier_id: pendingTransaction.chai_tier_id,
-        supporter_name: pendingTransaction.supporter_name,
-        supporter_message: pendingTransaction.supporter_message,
-        amount: pendingTransaction.amount,
-        payment_uid: paymentUID,
+        creator_id: matchingTransaction.creator_id,
+        team_member_id: matchingTransaction.team_member_id,
+        funding_goal_id: matchingTransaction.funding_goal_id,
+        chai_tier_id: matchingTransaction.chai_tier_id,
+        supporter_name: matchingTransaction.supporter_name,
+        supporter_message: matchingTransaction.supporter_message,
+        amount: matchingTransaction.amount,
+        payment_uid: trimmedUID,
         status: 'verified',
         verified_at: new Date().toISOString()
       })
@@ -77,12 +103,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Update funding goal progress if applicable
-    if (pendingTransaction.funding_goal_id) {
+    if (matchingTransaction.funding_goal_id) {
       const { error: updateError } = await supabase.rpc(
         'increment_funding_goal', 
         { 
-          goal_id: pendingTransaction.funding_goal_id, 
-          amount: pendingTransaction.amount 
+          goal_id: matchingTransaction.funding_goal_id, 
+          amount: matchingTransaction.amount 
         }
       );
 
@@ -91,12 +117,6 @@ export async function POST(req: NextRequest) {
         // Don't fail the transaction, just log the error
       }
     }
-
-    // Clean up pending transaction
-    await supabase
-      .from('pending_transactions')
-      .delete()
-      .eq('id', pendingTransaction.id);
 
     return NextResponse.json({
       success: true,
