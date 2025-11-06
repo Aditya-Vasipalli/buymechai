@@ -148,22 +148,21 @@ export default function BuyChaiButton({
             <div className="space-y-4 text-left">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-semibold text-blue-800 mb-2">📱 Step 1: Scan & Pay</h4>
-                <p className="text-sm text-blue-700 mb-2">
+                <p className="text-sm text-blue-700">
                   Scan the QR code above with any UPI app to pay {getSelectedAmount()}
                 </p>
-                <div className="text-xs bg-blue-100 p-2 rounded font-mono">
-                  Transaction Note: {paymentData.paymentUID}
-                </div>
               </div>
 
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                 <h4 className="font-semibold text-orange-800 mb-2">📋 Step 2: Copy Payment Code</h4>
                 <p className="text-sm text-orange-700 mb-2">
-                  After payment, copy the long code from your UPI transaction details (not from notes field)
+                  After making the payment, find the transaction in your UPI app and copy the verification code from:
                 </p>
-                <p className="text-xs text-orange-600">
-                  ⚠️ Look for transaction note/reference, not the payment notes you entered
-                </p>
+                <ul className="text-xs text-orange-700 list-disc list-inside space-y-1">
+                  <li><strong>Transaction Reference</strong> or <strong>UTR</strong></li>
+                  <li>Look for a code starting with "BMC-"</li>
+                  <li>It's in the transaction details, not your message notes</li>
+                </ul>
               </div>
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
