@@ -20,8 +20,8 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
     }
 
     // Basic validation - check if it looks like our UID format
-    if (!paymentUID.startsWith('BMC_') || paymentUID.length < 200) {
-      setMessage({ type: 'error', text: 'Invalid payment code format' });
+    if (!paymentUID.startsWith('BMC-') || paymentUID.length < 25 || paymentUID.length > 35) {
+      setMessage({ type: 'error', text: 'Invalid payment code format. Should be like: BMC-12345678-abc123def456' });
       return;
     }
 
@@ -96,8 +96,9 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
           <ul className="text-xs text-yellow-700 space-y-1">
             <li>• Open your UPI app (GPay, PhonePe, Paytm, etc.)</li>
             <li>• Go to transaction history and find your recent payment</li>
-            <li>• Look for "Transaction Note" or "Reference" (NOT payment notes)</li>
-            <li>• Copy the long code starting with "BMC_"</li>
+            <li>• Look for "Transaction Reference" or "UTR" or "Ref ID"</li>
+            <li>• Copy the code starting with "BMC-" (like: BMC-12345678-abc123def456)</li>
+            <li>• It's NOT in your message notes - it's in the transaction reference field</li>
           </ul>
         </div>
         
@@ -105,7 +106,7 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
           <textarea
             value={paymentUID}
             onChange={(e) => setPaymentUID(e.target.value)}
-            placeholder="Paste your payment code here (starts with BMC_...)"
+            placeholder="Paste your payment code here (like: BMC-12345678-abc123def456)"
             rows={4}
             className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500 resize-none text-xs font-mono"
           />
@@ -154,8 +155,9 @@ export default function PaymentVerification({ creatorId, onVerificationSuccess }
 
       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-700">
-          <strong>How it works:</strong> Each UPI payment includes a unique verification code in the transaction reference/note field (visible in your UPI app's transaction history). 
-          This code confirms the payment was made and updates the creator's funding progress. The code is different from any notes you typed during payment.
+          <strong>How it works:</strong> Each UPI payment includes a unique verification code in the transaction reference field (visible in your UPI app's transaction history). 
+          This short code (like BMC-12345678-abc123def456) confirms the payment was made and updates the creator's funding progress. 
+          Look for it in "Transaction Reference", "UTR", or "Ref ID" - not in message notes.
         </p>
       </div>
     </div>

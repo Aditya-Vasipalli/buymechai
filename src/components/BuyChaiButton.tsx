@@ -66,16 +66,15 @@ export default function BuyChaiButton({
 
       const { paymentUID } = await uidResponse.json();
       
-      // Create UPI payment with UID in note
-      const transactionNote = `${paymentUID}`;
+      // Create UPI payment with shorter UID in reference
       const amountInRupees = UPIService.paiseToRupees(amount);
       
       const paymentParams: UPIPaymentParams = {
         upiId: recipient.upi_id,
         amount: amountInRupees,
         merchantName: selectedTeamMember ? selectedTeamMember.name : creator.display_name,
-        transactionNote,
-        transactionRef: `BMC_${Date.now()}`
+        transactionNote: supporterMessage || `Support for ${creator.display_name}`,
+        transactionRef: paymentUID // Use the short UID as reference
       };
 
       const result = await UPIService.initiatePayment(paymentParams);

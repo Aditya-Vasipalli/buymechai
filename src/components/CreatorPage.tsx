@@ -72,6 +72,23 @@ export default function CreatorPage({ username }: CreatorPageProps) {
     fetchCreatorData();
   }, [username]);
 
+  const fetchFundingGoals = async () => {
+    if (!creator) return;
+    
+    try {
+      const { data: fundingGoalsData } = await supabase
+        .from('funding_goals')
+        .select('*')
+        .eq('creator_id', creator.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      setFundingGoals(fundingGoalsData || []);
+    } catch (error) {
+      console.error('Error fetching funding goals:', error);
+    }
+  };
+
   const fetchCreatorData = async () => {
     try {
       // Fetch creator
@@ -256,8 +273,8 @@ export default function CreatorPage({ username }: CreatorPageProps) {
           <PaymentVerification 
             creatorId={creator.id}
             onVerificationSuccess={() => {
-              // Refresh the page to update funding goals
-              window.location.reload();
+              // Refresh funding goals data to show updated progress
+              fetchFundingGoals();
             }}
           />
 

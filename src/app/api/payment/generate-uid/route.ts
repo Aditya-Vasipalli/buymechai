@@ -34,15 +34,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate a very long UID (240 characters - near UPI note limit)
-    // Format: BMC_[timestamp]_[random32]_[hash64]_[random64]_[checksum48]
-    const timestamp = Date.now().toString();
-    const random32 = crypto.randomBytes(16).toString('hex'); // 32 chars
-    const hash64 = crypto.createHash('sha256').update(`${creatorId}_${amount}_${timestamp}`).digest('hex').substring(0, 64); // 64 chars
-    const random64 = crypto.randomBytes(32).toString('hex'); // 64 chars
-    const checksum = crypto.createHash('md5').update(`${timestamp}_${random32}_${hash64}_${random64}`).digest('hex').substring(0, 24); // 24 chars
+    // Generate a short UID that fits UPI note limits (40-45 chars max)
+    // Format: BMC-[8char-timestamp]-[16char-hash] = ~30 chars total
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
+    const dataToHash = `${creatorId}_${amount}_${supporterName}_${Date.now()}`;
+    const hash16 = crypto.createHash('sha256').update(dataToHash).digest('hex').substring(0, 16); // 16 chars
     
-    const paymentUID = `BMC_${timestamp}_${random32}_${hash64}_${random64}_${checksum}`;
+    const paymentUID = `BMC-${timestamp}-${hash16}`;
+    
+    console.log(`Generated short UID: ${paymentUID} (${paymentUID.length} characters)`);
 
     // Store pending transaction
     const { data, error } = await supabase

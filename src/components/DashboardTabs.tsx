@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Creator, ChaiTier, TeamMember, FundingGoal, Link as SocialLink, supabase } from '@/lib/supabase';
 import { UPIService } from '@/lib/upi';
 import { 
@@ -700,6 +700,68 @@ export function GoalsTab({
 
 // Analytics Tab Component
 export function AnalyticsTab({ creator }: { creator: Creator }) {
+  const [analytics, setAnalytics] = useState({
+    totalViews: 0,
+    totalDonations: 0,
+    totalEarned: 0,
+    recentTransactions: [] as any[]
+  });
+  const [loading, setLoading] = useState(true);
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+
+      // Get page views from analytics table
+      const { data: viewsData } = await supabase
+        .from('analytics')
+        .select('id')
+        .eq('creator_id', creator.id)
+        .eq('event_type', 'page_view');
+
+      // Get verified transactions
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('id, amount, supporter_name, verified_at, chai_tier_id')
+        .eq('creator_id', creator.id)
+        .eq('status', 'verified')
+        .order('verified_at', { ascending: false })
+        .limit(10);
+
+      const totalEarned = transactionsData?.reduce((sum, t) => sum + t.amount, 0) || 0;
+
+      setAnalytics({
+        totalViews: viewsData?.length || 0,
+        totalDonations: transactionsData?.length || 0,
+        totalEarned,
+        recentTransactions: transactionsData || []
+      });
+
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (creator) {
+      loadAnalytics();
+    }
+  }, [creator]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold">Analytics</h2>
+        <div className="text-center py-12">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Analytics</h2>
@@ -707,30 +769,58 @@ export function AnalyticsTab({ creator }: { creator: Creator }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 p-6 rounded-lg">
           <h3 className="font-semibold text-blue-800 mb-2">Total Views</h3>
-          <p className="text-2xl font-bold text-blue-600">0</p>
+          <p className="text-2xl font-bold text-blue-600">{analytics.totalViews.toLocaleString()}</p>
           <p className="text-sm text-blue-600">Page visits</p>
         </div>
         
         <div className="bg-green-50 p-6 rounded-lg">
           <h3 className="font-semibold text-green-800 mb-2">Total Donations</h3>
-          <p className="text-2xl font-bold text-green-600">0</p>
-          <p className="text-sm text-green-600">Successful payments</p>
+          <p className="text-2xl font-bold text-green-600">{analytics.totalDonations.toLocaleString()}</p>
+          <p className="text-sm text-green-600">Verified payments</p>
         </div>
         
         <div className="bg-orange-50 p-6 rounded-lg">
           <h3 className="font-semibold text-orange-800 mb-2">Total Earned</h3>
-          <p className="text-2xl font-bold text-orange-600">₹0</p>
+          <p className="text-2xl font-bold text-orange-600">{UPIService.formatCurrency(analytics.totalEarned)}</p>
           <p className="text-sm text-orange-600">All time earnings</p>
         </div>
       </div>
-      
-      <div className="text-center py-12">
-        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          📊
+
+      {analytics.recentTransactions.length > 0 ? (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Recent Donations</h3>
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="divide-y divide-gray-200">
+              {analytics.recentTransactions.map((transaction, index) => (
+                <div key={transaction.id} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {transaction.supporter_name || 'Anonymous'}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(transaction.verified_at).toLocaleDateString()} at{' '}
+                      {new Date(transaction.verified_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">
+                      {UPIService.formatCurrency(transaction.amount)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <h3 className="text-lg font-medium text-gray-600 mb-2">Analytics coming soon</h3>
-        <p className="text-gray-500">We're working on detailed analytics and insights for your page</p>
-      </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            📊
+          </div>
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No donations yet</h3>
+          <p className="text-gray-500">Share your page to start receiving support!</p>
+        </div>
+      )}
     </div>
   );
 }
